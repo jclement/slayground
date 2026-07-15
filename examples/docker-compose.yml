@@ -12,6 +12,7 @@ services:
       # SLAYGROUND_IDLE_TIMEOUT: 30m
       # SLAYGROUND_IGNORE_PATHS: /health,/ping
       # SLAYGROUND_IGNORE_USER_AGENTS: UptimeRobot,Pingdom,kube-probe
+      # SLAYGROUND_IGNORE_CONTAINERS: db,redis
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -19,7 +20,8 @@ services:
     image: traefik/whoami
     command: ["--port=8080"]
 
-  # A container slayground must never stop:
+  # A container slayground must never stop (or list it in
+  # SLAYGROUND_IGNORE_CONTAINERS above):
   # db:
   #   image: postgres:17
   #   labels:

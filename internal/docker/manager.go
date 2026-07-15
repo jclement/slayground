@@ -11,14 +11,18 @@ import (
 
 // Manager suspends and resumes the sibling containers of a Compose project.
 // It never touches slayground's own container, Compose one-off containers
-// (docker compose run ...), or containers labeled slayground.exclude=true.
+// (docker compose run ...), containers labeled slayground.exclude=true, or
+// containers listed in IgnoreContainers.
 type Manager struct {
 	Client         *Client
 	Project        string
 	SelfID         string
 	StopTimeout    time.Duration
 	StartupTimeout time.Duration
-	Log            *slog.Logger
+	// IgnoreContainers holds Compose service names or full container names
+	// to leave alone (case-insensitive).
+	IgnoreContainers []string
+	Log              *slog.Logger
 }
 
 // Suspend stops every running managed container in the project.
@@ -137,6 +141,11 @@ func (m *Manager) managed(c Container) bool {
 	switch strings.ToLower(c.Labels[LabelExclude]) {
 	case "true", "1", "yes":
 		return false
+	}
+	for _, name := range m.IgnoreContainers {
+		if strings.EqualFold(name, c.Labels[LabelService]) || strings.EqualFold(name, c.Name) {
+			return false
+		}
 	}
 	return true
 }

@@ -24,6 +24,7 @@ const DefaultSocket = "/var/run/docker.sock"
 // Compose- and slayground-specific container labels.
 const (
 	LabelProject = "com.docker.compose.project"
+	LabelService = "com.docker.compose.service"
 	LabelOneOff  = "com.docker.compose.oneoff"
 	// LabelExclude marks a container slayground must never stop or start,
 	// e.g. a database that should keep running while the stack sleeps.

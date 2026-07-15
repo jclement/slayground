@@ -50,6 +50,44 @@ func TestSuspendStopsOnlyManagedRunningContainers(t *testing.T) {
 	}
 }
 
+func TestIgnoreContainersByServiceOrName(t *testing.T) {
+	web := &fakeContainer{id: "web", name: "proj-web-1", state: "running", labels: map[string]string{
+		LabelProject: "proj", LabelService: "web",
+	}}
+	db := &fakeContainer{id: "db", name: "proj-db-1", state: "running", labels: map[string]string{
+		LabelProject: "proj", LabelService: "db",
+	}}
+	cache := &fakeContainer{id: "cache", name: "proj-cache-1", state: "exited", labels: map[string]string{
+		LabelProject: "proj", LabelService: "cache",
+	}}
+	daemon := newFakeDaemon(web, db, cache)
+	m := testManager(startFakeDaemon(t, daemon))
+	// "DB" by service name (case-insensitive), the cache by container name.
+	m.IgnoreContainers = []string{"DB", "proj-cache-1"}
+
+	if err := m.Suspend(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Resume(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	daemon.mu.Lock()
+	defer daemon.mu.Unlock()
+	if web.stops != 1 || web.starts != 1 {
+		t.Errorf("web stops/starts = %d/%d, want 1/1", web.stops, web.starts)
+	}
+	if db.stops != 0 {
+		t.Error("ignored service db was stopped")
+	}
+	if cache.starts != 0 {
+		t.Error("ignored container proj-cache-1 was started")
+	}
+	if cache.state != "exited" {
+		t.Errorf("cache state = %s, want left exited", cache.state)
+	}
+}
+
 func TestResumeStartsAndWaitsForHealth(t *testing.T) {
 	web := &fakeContainer{
 		id: "web", name: "proj-web-1", state: "exited", labels: projectLabels("proj"),

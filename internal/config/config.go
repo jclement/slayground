@@ -56,6 +56,9 @@ type Config struct {
 	IgnoreUserAgents []string
 	// IgnorePaths lists path prefixes treated the same way.
 	IgnorePaths []string
+	// IgnoreContainers lists Compose service names (or full container
+	// names) slayground must never stop or start, e.g. a database.
+	IgnoreContainers []string
 	// ComposeProject overrides Compose project auto-discovery.
 	ComposeProject string
 	// DockerSocket is the path to the Docker daemon's unix socket.
@@ -77,6 +80,7 @@ type fileConfig struct {
 	StopTimeout      string   `yaml:"stop_timeout"`
 	IgnoreUserAgents []string `yaml:"ignore_user_agents"`
 	IgnorePaths      []string `yaml:"ignore_paths"`
+	IgnoreContainers []string `yaml:"ignore_containers"`
 	ComposeProject   string   `yaml:"compose_project"`
 	DockerSocket     string   `yaml:"docker_socket"`
 	Routes           []struct {
@@ -139,6 +143,9 @@ func (c *Config) loadFile(path string) error {
 	if len(fc.IgnorePaths) > 0 {
 		c.IgnorePaths = fc.IgnorePaths
 	}
+	if len(fc.IgnoreContainers) > 0 {
+		c.IgnoreContainers = fc.IgnoreContainers
+	}
 	for _, r := range fc.Routes {
 		c.Routes = append(c.Routes, Route{Prefix: r.Prefix, Upstream: r.Upstream})
 	}
@@ -164,6 +171,9 @@ func (c *Config) loadEnv(getenv func(string) string) error {
 	}
 	if v := getenv("SLAYGROUND_IGNORE_PATHS"); v != "" {
 		c.IgnorePaths = splitList(v)
+	}
+	if v := getenv("SLAYGROUND_IGNORE_CONTAINERS"); v != "" {
+		c.IgnoreContainers = splitList(v)
 	}
 	if v := getenv("SLAYGROUND_ROUTES"); v != "" {
 		routes, err := parseRoutesEnv(v)

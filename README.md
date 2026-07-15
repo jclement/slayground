@@ -64,8 +64,9 @@ A runnable example lives in [examples/docker-compose.yml](examples/docker-compos
   auto-refreshing wait page (`503` + `Retry-After` for API clients) while the
   containers start and their healthchecks go green, then traffic forwards
   again.
-- Containers labeled `slayground.exclude: "true"` (say, a database) and
-  Compose one-off containers (`docker compose run ...`) are never touched.
+- Containers listed in `SLAYGROUND_IGNORE_CONTAINERS`, containers labeled
+  `slayground.exclude: "true"` (say, a database), and Compose one-off
+  containers (`docker compose run ...`) are never touched.
 - On startup slayground resumes the whole stack once, so it's always in a
   known-good state.
 
@@ -86,6 +87,7 @@ Everything is set with environment variables, or optionally a YAML file
 | `SLAYGROUND_STOP_TIMEOUT` | `30s` | Per-container grace period when stopping |
 | `SLAYGROUND_IGNORE_USER_AGENTS` | | Comma-separated, case-insensitive user-agent substrings (e.g. `UptimeRobot,Pingdom,kube-probe`) |
 | `SLAYGROUND_IGNORE_PATHS` | | Comma-separated path prefixes (e.g. `/health,/ping`) |
+| `SLAYGROUND_IGNORE_CONTAINERS` | | Comma-separated Compose service names (or container names) never stopped/started (e.g. `db,redis`) |
 | `SLAYGROUND_ROUTES` | | Path-based routing: `/api=http://api:3000,/ws=http://ws:9000` |
 | `SLAYGROUND_COMPOSE_PROJECT` | *(auto)* | Override Compose project auto-discovery |
 | `SLAYGROUND_DOCKER_SOCKET` | `/var/run/docker.sock` | Docker daemon socket path |
@@ -110,6 +112,16 @@ environment:
 ```
 
 ### Keeping containers running
+
+Some containers (a database, a backup agent) should keep running while the
+rest of the stack sleeps. Either list them by Compose service name:
+
+```yaml
+environment:
+  SLAYGROUND_IGNORE_CONTAINERS: db,redis
+```
+
+or label the container itself:
 
 ```yaml
 db:

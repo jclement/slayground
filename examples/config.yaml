@@ -30,6 +30,12 @@ ignore_paths:
   - /health
   - /ping
 
+# Compose services (or container names) slayground must never stop or start.
+# Equivalent to labeling the container with slayground.exclude: "true".
+ignore_containers:
+  - db
+  - redis
+
 # Normally auto-discovered from slayground's own container labels.
 # compose_project: mystack
 # docker_socket: /var/run/docker.sock

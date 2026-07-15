@@ -113,12 +113,13 @@ func buildController(cfg *config.Config, logger *slog.Logger) proxy.StackControl
 
 	logger.Info("managing compose project", "project", project, "self", shortID(selfID))
 	return &docker.Manager{
-		Client:         client,
-		Project:        project,
-		SelfID:         selfID,
-		StopTimeout:    cfg.StopTimeout,
-		StartupTimeout: cfg.StartupTimeout,
-		Log:            logger,
+		Client:           client,
+		Project:          project,
+		SelfID:           selfID,
+		StopTimeout:      cfg.StopTimeout,
+		StartupTimeout:   cfg.StartupTimeout,
+		IgnoreContainers: cfg.IgnoreContainers,
+		Log:              logger,
 	}
 }
 

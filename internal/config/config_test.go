@@ -55,6 +55,7 @@ func TestEnvParsing(t *testing.T) {
 		"SLAYGROUND_STOP_TIMEOUT":       "10s",
 		"SLAYGROUND_IGNORE_USER_AGENTS": "UptimeRobot, Pingdom ,",
 		"SLAYGROUND_IGNORE_PATHS":       "/health,/ping",
+		"SLAYGROUND_IGNORE_CONTAINERS":  "db, cache",
 		"SLAYGROUND_ROUTES":             "/api=http://api:9000,/ws=http://ws:9001",
 		"SLAYGROUND_COMPOSE_PROJECT":    "myproj",
 		"SLAYGROUND_DOCKER_SOCKET":      "/tmp/docker.sock",
@@ -71,6 +72,9 @@ func TestEnvParsing(t *testing.T) {
 	}
 	if len(cfg.IgnorePaths) != 2 || cfg.IgnorePaths[1] != "/ping" {
 		t.Errorf("IgnorePaths = %v", cfg.IgnorePaths)
+	}
+	if len(cfg.IgnoreContainers) != 2 || cfg.IgnoreContainers[0] != "db" || cfg.IgnoreContainers[1] != "cache" {
+		t.Errorf("IgnoreContainers = %v", cfg.IgnoreContainers)
 	}
 	if len(cfg.Routes) != 2 {
 		t.Fatalf("Routes = %v", cfg.Routes)
@@ -119,6 +123,7 @@ upstream: http://file-app:80
 idle_timeout: 10m
 ignore_user_agents: [FileAgent]
 ignore_paths: [/file-health]
+ignore_containers: [db]
 routes:
   - prefix: /api
     upstream: http://file-api:80
@@ -144,6 +149,9 @@ routes:
 	}
 	if len(cfg.IgnoreUserAgents) != 1 || cfg.IgnoreUserAgents[0] != "FileAgent" {
 		t.Errorf("IgnoreUserAgents = %v", cfg.IgnoreUserAgents)
+	}
+	if len(cfg.IgnoreContainers) != 1 || cfg.IgnoreContainers[0] != "db" {
+		t.Errorf("IgnoreContainers = %v", cfg.IgnoreContainers)
 	}
 }
 
