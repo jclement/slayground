@@ -1,0 +1,22 @@
+[tools]
+go = "1.26"
+
+[tasks.build]
+description = "Build slayground into bin/ with the version stamped in"
+run = 'go build -trimpath -ldflags "-X main.version=$(git describe --tags --always --dirty)" -o bin/slayground .'
+
+[tasks.test]
+description = "Run the test suite"
+run = "go test -race ./..."
+
+[tasks.vet]
+description = "Run go vet"
+run = "go vet ./..."
+
+[tasks.docker]
+description = "Build the Docker image locally as slayground:dev"
+run = 'docker build --build-arg VERSION="$(git describe --tags --always --dirty)" -t slayground:dev .'
+
+[tasks.release]
+description = "Tag and push the next release (usage: mise release [major|minor|patch]; default minor)"
+run = "scripts/release.sh"

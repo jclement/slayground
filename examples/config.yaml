@@ -1,0 +1,35 @@
+# Full slayground configuration file (mount it and set SLAYGROUND_CONFIG to
+# its path). Environment variables override anything set here.
+listen: ":80"
+
+# Default upstream for requests that match no route.
+upstream: http://app:8080
+
+# Path-based routing: longest prefix wins, on path-segment boundaries.
+routes:
+  - prefix: /api
+    upstream: http://api:3000
+  - prefix: /ws
+    upstream: http://ws:9000
+
+# Stop the stack after this long without meaningful traffic.
+idle_timeout: 30m
+
+# How long a wake waits for containers to become healthy before forwarding anyway.
+startup_timeout: 5m
+
+# Per-container grace period when stopping.
+stop_timeout: 30s
+
+# Requests matching these never count as activity and never wake the stack.
+ignore_user_agents:
+  - UptimeRobot
+  - Pingdom
+  - kube-probe
+ignore_paths:
+  - /health
+  - /ping
+
+# Normally auto-discovered from slayground's own container labels.
+# compose_project: mystack
+# docker_socket: /var/run/docker.sock

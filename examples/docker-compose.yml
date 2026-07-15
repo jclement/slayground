@@ -1,0 +1,26 @@
+# Minimal example: drop slayground in front of an existing service.
+# When nobody has touched the app for 30 minutes, slayground stops it;
+# the next visitor sees a brief "waking up" page while it starts again.
+services:
+  slayground:
+    image: ghcr.io/jclement/slayground:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    environment:
+      SLAYGROUND_UPSTREAM: http://app:8080
+      # SLAYGROUND_IDLE_TIMEOUT: 30m
+      # SLAYGROUND_IGNORE_PATHS: /health,/ping
+      # SLAYGROUND_IGNORE_USER_AGENTS: UptimeRobot,Pingdom,kube-probe
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  app:
+    image: traefik/whoami
+    command: ["--port=8080"]
+
+  # A container slayground must never stop:
+  # db:
+  #   image: postgres:17
+  #   labels:
+  #     slayground.exclude: "true"
