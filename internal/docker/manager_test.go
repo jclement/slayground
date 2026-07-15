@@ -120,6 +120,31 @@ func TestResumeStartsAndWaitsForHealth(t *testing.T) {
 	}
 }
 
+func TestResumeRecoversFromStaleRunningState(t *testing.T) {
+	// Regression test: right after a stop, Docker can briefly report the
+	// container as still running. Resume must not trust that snapshot — it
+	// has to notice the container is actually exited and start it.
+	web := &fakeContainer{
+		id: "web", name: "proj-web-1", state: "exited", exitCode: 137,
+		labels: projectLabels("proj"), staleRunningInspects: 1,
+	}
+	daemon := newFakeDaemon(web)
+	m := testManager(startFakeDaemon(t, daemon))
+
+	if err := m.Resume(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	daemon.mu.Lock()
+	defer daemon.mu.Unlock()
+	if web.starts != 1 {
+		t.Errorf("web starts = %d, want 1", web.starts)
+	}
+	if web.state != "running" {
+		t.Errorf("web state = %s, want running", web.state)
+	}
+}
+
 func TestResumeTimesOutOnUnhealthyContainer(t *testing.T) {
 	web := &fakeContainer{
 		id: "web", name: "proj-web-1", state: "exited", labels: projectLabels("proj"),
@@ -159,10 +184,17 @@ func TestResumeReportsCrashedContainer(t *testing.T) {
 	}
 	daemon := newFakeDaemon(web)
 	m := testManager(startFakeDaemon(t, daemon))
-	m.StartupTimeout = 700 * time.Millisecond
+	// Long enough for all start attempts to be exhausted (one per 500ms
+	// poll) so the timeout error reports the exit code.
+	m.StartupTimeout = 2500 * time.Millisecond
 
 	err := m.Resume(context.Background())
 	if err == nil || !strings.Contains(err.Error(), "exited: 1") {
 		t.Fatalf("err = %v, want crashed-container report", err)
+	}
+	daemon.mu.Lock()
+	defer daemon.mu.Unlock()
+	if web.starts != maxStartAttempts {
+		t.Errorf("web starts = %d, want %d (bounded retries)", web.starts, maxStartAttempts)
 	}
 }

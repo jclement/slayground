@@ -4,6 +4,7 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
@@ -231,7 +232,14 @@ func (s *Server) newReverseProxy(target *url.URL) *httputil.ReverseProxy {
 		// Flush immediately: keeps SSE and other streaming responses live.
 		FlushInterval: -1,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, err error) {
-			s.log.Warn("upstream error", "path", r.URL.Path, "upstream", target.String(), "error", err)
+			if errors.Is(err, context.Canceled) {
+				// The client hung up before the upstream answered (common
+				// for health checkers with short timeouts) — not an
+				// upstream problem, so keep it out of the warn stream.
+				s.log.Debug("client canceled request", "path", r.URL.Path)
+			} else {
+				s.log.Warn("upstream error", "path", r.URL.Path, "upstream", target.String(), "error", err)
+			}
 			http.Error(w, "slayground: upstream unreachable", http.StatusBadGateway)
 		},
 	}

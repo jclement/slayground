@@ -28,6 +28,10 @@ type fakeContainer struct {
 	stuckUnhealthy       bool
 	// staysExited simulates a one-shot container: start leaves it exited.
 	staysExited bool
+	// staleRunningInspects makes the next N inspects report Running=true
+	// regardless of actual state, simulating Docker's brief stale-state
+	// window right after a stop returns.
+	staleRunningInspects int
 
 	stops, starts, inspects int
 }
@@ -97,8 +101,13 @@ func (d *fakeDaemon) handler() http.Handler {
 			return
 		}
 		c.inspects++
+		running := c.state == "running"
+		if c.staleRunningInspects > 0 {
+			c.staleRunningInspects--
+			running = true
+		}
 		state := map[string]any{
-			"Running":  c.state == "running",
+			"Running":  running,
 			"ExitCode": c.exitCode,
 		}
 		if c.hasHealth {
