@@ -415,6 +415,48 @@ func TestWaitPageContentNegotiation(t *testing.T) {
 	}
 }
 
+func TestUpstreamUnreachableServesRetryPage(t *testing.T) {
+	// An upstream that is not listening at all.
+	dead := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+	dead.Close()
+
+	s := newServer(t, map[string]string{"SLAYGROUND_UPSTREAM": dead.URL}, nil)
+	proxySrv := httptest.NewServer(s)
+	defer proxySrv.Close()
+
+	// Browsers get a pretty auto-reloading page.
+	req, _ := http.NewRequest(http.MethodGet, proxySrv.URL+"/", nil)
+	req.Header.Set("Accept", "text/html")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusBadGateway {
+		t.Errorf("status = %d, want 502", resp.StatusCode)
+	}
+	if !strings.Contains(string(body), "<html") || !strings.Contains(string(body), "location.reload") {
+		t.Errorf("browser 502 body = %q, want auto-reloading HTML page", body)
+	}
+	if resp.Header.Get("Retry-After") == "" {
+		t.Error("Retry-After not set on upstream error page")
+	}
+
+	// API clients get plain text.
+	req, _ = http.NewRequest(http.MethodGet, proxySrv.URL+"/", nil)
+	req.Header.Set("Accept", "application/json")
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ = io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusBadGateway || strings.Contains(string(body), "<html") {
+		t.Errorf("API 502 = %d %q, want plain text", resp.StatusCode, body)
+	}
+}
+
 func TestSuspendFailureLeavesStackUp(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		fmt.Fprint(w, "up")

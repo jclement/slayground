@@ -240,7 +240,7 @@ func (s *Server) newReverseProxy(target *url.URL) *httputil.ReverseProxy {
 			} else {
 				s.log.Warn("upstream error", "path", r.URL.Path, "upstream", target.String(), "error", err)
 			}
-			http.Error(w, "slayground: upstream unreachable", http.StatusBadGateway)
+			serveUpstreamErrorPage(w, r)
 		},
 	}
 }
